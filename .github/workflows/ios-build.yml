@@ -1,0 +1,49 @@
+
+name: Build Avengers Widget
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: AvengersDoomsdayWidget_GitHubActions_Starter
+        run: xcodegen generate --spec project.yml
+
+      - name: Build iOS Simulator app
+        working-directory: AvengersDoomsdayWidget_GitHubActions_Starter
+        run: |
+          xcodebuild \
+            -project AvengersDoomsdayWidget.xcodeproj \
+            -scheme AvengersDoomsdayWidget \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Upload build artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Avengers-Widget-Simulator-Build
+          path: ${{ runner.temp }}/DerivedData/Build/Products/Debug-iphonesimulator/
+          if-no-files-found: error
