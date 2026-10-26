@@ -1,5 +1,5 @@
 
-name: Build Avengers Widget
+name: Build Avengers Widget for iPhone
 
 on:
   workflow_dispatch:
@@ -27,23 +27,31 @@ jobs:
         working-directory: AvengersDoomsdayWidget_GitHubActions_Starter
         run: xcodegen generate --spec project.yml
 
-      - name: Build iOS Simulator app
+      - name: Build for iPhone device
         working-directory: AvengersDoomsdayWidget_GitHubActions_Starter
         run: |
           xcodebuild \
             -project AvengersDoomsdayWidget.xcodeproj \
             -scheme AvengersDoomsdayWidget \
-            -sdk iphonesimulator \
+            -sdk iphoneos \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Upload build artifact
-        if: success()
+      - name: Package IPA
+        run: |
+          APP_PATH="$RUNNER_TEMP/DerivedData/Build/Products/Debug-iphoneos/AvengersDoomsdayWidget.app"
+          test -d "$APP_PATH"
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -qr AvengersDoomsdayWidget-unsigned.ipa Payload
+
+      - name: Upload iPhone build
         uses: actions/upload-artifact@v4
         with:
-          name: Avengers-Widget-Simulator-Build
-          path: ${{ runner.temp }}/DerivedData/Build/Products/Debug-iphonesimulator/
+          name: Avengers-Widget-iPhone-Unsigned
+          path: ${{ runner.temp }}/AvengersDoomsdayWidget-unsigned.ipa
           if-no-files-found: error
